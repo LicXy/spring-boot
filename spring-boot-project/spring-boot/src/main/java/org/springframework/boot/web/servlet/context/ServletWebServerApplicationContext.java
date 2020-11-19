@@ -38,6 +38,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.Scope;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.web.context.ConfigurableWebServerApplicationContext;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
@@ -148,8 +149,13 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 
 	@Override
 	protected void onRefresh() {
+		//执行父类的onRefresh()方法
 		super.onRefresh();
+
 		try {
+			/**
+			 * 创建web服务
+			 */
 			createWebServer();
 		}
 		catch (Throwable ex) {
@@ -176,7 +182,12 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		WebServer webServer = this.webServer;
 		ServletContext servletContext = getServletContext();
 		if (webServer == null && servletContext == null) {
+			// 获取web服务器工厂
 			ServletWebServerFactory factory = getWebServerFactory();
+			/**
+			 * 这里是获取Tomcat的web服务, 还可以获取jetty和undertow的web服务
+			 * {@link TomcatServletWebServerFactory#getWebServer(ServletContextInitializer...)}
+			 */
 			this.webServer = factory.getWebServer(getSelfInitializer());
 		}
 		else if (servletContext != null) {
@@ -207,6 +218,10 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 			throw new ApplicationContextException("Unable to start ServletWebServerApplicationContext due to multiple "
 					+ "ServletWebServerFactory beans : " + StringUtils.arrayToCommaDelimitedString(beanNames));
 		}
+		/**
+		 * 从IOC容器中获取web服务工厂bean
+		 * 问题: ServletWebServerFactory是何时注册到IOC容器中的呢 ?
+		 */
 		return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
 	}
 

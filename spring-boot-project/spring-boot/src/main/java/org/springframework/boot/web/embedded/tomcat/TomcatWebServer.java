@@ -84,10 +84,16 @@ public class TomcatWebServer implements WebServer {
 		Assert.notNull(tomcat, "Tomcat Server must not be null");
 		this.tomcat = tomcat;
 		this.autoStart = autoStart;
+		/**
+		 * tomcat的启动流程
+		 */
 		initialize();
 	}
 
 	private void initialize() throws WebServerException {
+		/**
+		 * tomcat启动逻辑
+		 */
 		logger.info("Tomcat initialized with port(s): " + getPortsDescription(false));
 		synchronized (this.monitor) {
 			try {

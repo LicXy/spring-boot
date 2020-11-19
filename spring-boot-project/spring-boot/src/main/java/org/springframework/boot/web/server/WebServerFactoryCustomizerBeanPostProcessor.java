@@ -38,6 +38,12 @@ import org.springframework.util.Assert;
  * @author Phillip Webb
  * @author Stephane Nicoll
  * @since 2.0.0
+ *
+ * web服务工厂自定义后置处理器,
+ *  在创建WebServerFactory的bean实例时会执行postProcessBeforeInitialization()方法和postProcessAfterInitialization()方法
+ *
+ *  类 webServerFactoryCustomizerBeanPostProcessor 的注册位置
+ * {@link org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar#registerBeanDefinitions(org.springframework.core.type.AnnotationMetadata, org.springframework.beans.factory.support.BeanDefinitionRegistry)}
  */
 public class WebServerFactoryCustomizerBeanPostProcessor implements BeanPostProcessor, BeanFactoryAware {
 

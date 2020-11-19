@@ -48,6 +48,7 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.web.reactive.context.StandardReactiveWebEnvironment;
+import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ApplicationListener;
@@ -298,35 +299,55 @@ public class SpringApplication {
 	public ConfigurableApplicationContext run(String... args) {
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
+		//创建一个容器对象
 		ConfigurableApplicationContext context = null;
+		//创建异常报告集合
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
 		configureHeadlessProperty();
+		//到meta-info/spring.factories中获取SpringApplicationRunListener监听器(事件发布监听器)
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		//发布容器starting事件(通过spring的时间多播器)
 		listeners.starting();
 		try {
+			//封装命令行参数
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			//准备容器环境
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
+			//打印springboot的图标
 			Banner printedBanner = printBanner(environment);
 			context = createApplicationContext();
+			//到meta-info中,获取异常报告
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
+			/**
+			 * 准备环境
+			 */
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			/**
+			 * 启动IOC容器 ==> Spring相关
+			 */
 			refreshContext(context);
+
 			afterRefresh(context, applicationArguments);
+
 			stopWatch.stop();
 			if (this.logStartupInfo) {
 				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
 			}
+			//发布容器启动事件
 			listeners.started(context);
+			//运行ApplicationRunner 和 CommandLineRunner
 			callRunners(context, applicationArguments);
 		}
 		catch (Throwable ex) {
+			//出现异常, 调用异常分析保护类进行分析
 			handleRunFailure(context, ex, exceptionReporters, listeners);
 			throw new IllegalStateException(ex);
 		}
 
 		try {
+			//发布容器运行事件
 			listeners.running(context);
 		}
 		catch (Throwable ex) {
@@ -338,10 +359,12 @@ public class SpringApplication {
 
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
-		// Create and configure the environment
+		//创建或者配置环境
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+		//将命令行参数设置到环境中
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		ConfigurationPropertySources.attach(environment);
+		//通过监听器发布环境准备事件
 		listeners.environmentPrepared(environment);
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
@@ -365,15 +388,18 @@ public class SpringApplication {
 
 	private void prepareContext(ConfigurableApplicationContext context, ConfigurableEnvironment environment,
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
+		//将环境设置到容器中
 		context.setEnvironment(environment);
 		postProcessApplicationContext(context);
+		//应用初始化器
 		applyInitializers(context);
+		//发布容器上下文准备完成事件
 		listeners.contextPrepared(context);
 		if (this.logStartupInfo) {
 			logStartupInfo(context.getParent() == null);
 			logStartupProfileInfo(context);
 		}
-		// Add boot specific singleton beans
+		//注册关于springboot特性的相关单例bean
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
 		if (printedBanner != null) {
@@ -390,6 +416,7 @@ public class SpringApplication {
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
 		load(context, sources.toArray(new Object[0]));
+		//发布容器上下文加载完成事件
 		listeners.contextLoaded(context);
 	}
 
@@ -744,6 +771,11 @@ public class SpringApplication {
 	 */
 	protected void refresh(ApplicationContext applicationContext) {
 		Assert.isInstanceOf(AbstractApplicationContext.class, applicationContext);
+		/**
+		 * 调用AbstractApplicationContext中的refresh()方法启动IOC容器, 在onfresh()方法中创建web服务以及启动tomcat
+		 *
+		 * {@link ServletWebServerApplicationContext#onRefresh()}
+		 */
 		((AbstractApplicationContext) applicationContext).refresh();
 	}
 
